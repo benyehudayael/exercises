@@ -1,0 +1,22 @@
+[
+    {
+        "name": "John",
+        "address": {
+            "city": "New York",
+            "street": {
+                "name": "Broadway",
+                "number": "123"
+            }
+        }
+    },
+    {
+        "name": "Alice",
+        "address": {
+            "city": "London",
+            "street": {
+                "name": "Abbey Road",
+                "number": "456"
+            }
+        }
+    }
+]

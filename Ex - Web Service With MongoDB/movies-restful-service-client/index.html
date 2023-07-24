@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movies Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button#submitButton {
+            background-color: #007BFF;
+            color: #fff;
+        }
+
+        button#cancelButton {
+            background-color: #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        td button {
+            margin-right: 5px;
+        }
+
+        .editButton {
+            background-color: #FFC107;
+            color: #fff;
+        }
+
+        .deleteButton {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Movies Management</h1>
+
+    <h2>Add/Edit Movie</h2>
+    <form id="movieForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" value="" required><br>
+
+        <label for="director">Director:</label>
+        <input type="text" id="director" name="director" value="" required><br>
+
+        <label for="premieredYear">Premiered Year:</label>
+        <input type="number" id="premieredYear" name="premieredYear" value="" required><br>
+
+        <button type="submit" id="submitButton">Submit</button>
+        <button type="button" id="cancelButton">Cancel</button>
+    </form>
+
+    <h2>Movies List</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Director</th>
+                <th>Premiered Year</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="moviesTableBody">
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const movieForm = document.getElementById('movieForm');
+            const moviesTableBody = document.getElementById('moviesTableBody');
+
+            const fetchMovies = async () => {
+                try {
+                    const response = await fetch('http://localhost:3000/movies');
+                    const movies = await response.json();
+                    displayMovies(movies);
+                } catch (error) {
+                    console.error('Error fetching movies:', error);
+                }
+            };
+
+            const displayMovies = (movies) => {
+                moviesTableBody.innerHTML = '';
+
+                movies.forEach((movie) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${movie.name}</td>
+                        <td>${movie.director}</td>
+                        <td>${movie.premieredYear}</td>
+                        <td>
+                            <button class="editButton" data-id="${movie._id}">Edit</button>
+                            <button class="deleteButton" data-id="${movie._id}">Delete</button>
+                        </td>
+                    `;
+                    moviesTableBody.appendChild(row);
+                });
+
+                const editButtons = document.querySelectorAll('.editButton');
+                const deleteButtons = document.querySelectorAll('.deleteButton');
+
+                editButtons.forEach((button) => {
+                    button.addEventListener('click', handleEditButtonClick);
+                });
+
+                deleteButtons.forEach((button) => {
+                    button.addEventListener('click', handleDeleteButtonClick);
+                });
+            };
+
+            movieForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(movieForm);
+                const movieData = {
+                    name: formData.get('name'),
+                    director: formData.get('director'),
+                    premieredYear: parseInt(formData.get('premieredYear'), 10),
+                };
+
+                const movieId = movieForm.getAttribute('data-id');
+
+                if (movieId) {
+                    try {
+                        await fetch(`http://localhost:3000/movies/${movieId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(movieData),
+                        });
+
+                        movieForm.removeAttribute('data-id');
+                        movieForm.reset();
+                        fetchMovies();
+                    } catch (error) {
+                        console.error('Error updating movie:', error);
+                    }
+                } else {
+                    try {
+                        await fetch('http://localhost:3000/movies', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(movieData),
+                        });
+
+                        movieForm.reset();
+                        fetchMovies();
+                    } catch (error) {
+                        console.error('Error adding new movie:', error);
+                    }
+                }
+            });
+
+            const handleEditButtonClick = async (event) => {
+                const movieId = event.target.getAttribute('data-id');
+                try {
+                    const response = await fetch(`http://localhost:3000/movies/${movieId}`);
+                    const movie = await response.json();
+
+                    movieForm.setAttribute('data-id', movieId);
+                    document.getElementById('name').value = movie.name;
+                    document.getElementById('director').value = movie.director;
+                    document.getElementById('premieredYear').value = movie.premieredYear;
+                } catch (error) {
+                    console.error('Error fetching movie for editing:', error);
+                }
+            };
+
+            const handleDeleteButtonClick = async (event) => {
+                const movieId = event.target.getAttribute('data-id');
+                try {
+                    await fetch(`http://localhost:3000/movies/${movieId}`, {
+                        method: 'DELETE',
+                    });
+
+                    fetchMovies();
+                } catch (error) {
+                    console.error('Error deleting movie:', error);
+                }
+            };
+
+            document.getElementById('cancelButton').addEventListener('click', () => {
+                movieForm.removeAttribute('data-id');
+                movieForm.reset();
+            });
+
+            fetchMovies();
+        });
+
+    </script>
+</body>
+
+</html>
